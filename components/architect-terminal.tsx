@@ -35,6 +35,8 @@ export function ArchitectTerminal() {
       let apiContent = userText;
       
       try {
+        setLoadingText(`Fetching content from: ${targetUrl}...`);
+        
         const scrapeRes = await fetch("/api/scrape", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -44,14 +46,34 @@ export function ArchitectTerminal() {
         if (scrapeRes.ok) {
           const scrapeData = await scrapeRes.json();
           
+          // Check if the content was fetched from cache
+          if (scrapeData.fromCache) {
+            setLoadingText(`Using cached content from: ${targetUrl}...`);
+          }
+          
           if (isRevision) {
             apiContent += `\n\n[SYSTEM: The user provided a URL as a ${modeText}. You must analyze the following scraped content from ${targetUrl}, identify its core purpose, structure, and flaws, and then architect a vastly superior, bleeding-edge replacement using your advanced tech stack. Do not just copy it; obliterate its current form and synthesize a next-generation version:]\n"""\n${scrapeData.content}\n"""`;
           } else {
             apiContent += `\n\n[SYSTEM: The user provided a URL as ${modeText}. Use the following scraped content from ${targetUrl} strictly as context, documentation, or inspiration to answer their query or build what they asked for:]\n"""\n${scrapeData.content}\n"""`;
           }
+        } else {
+          const errorData = await scrapeRes.json();
+          console.error("Scraping failed:", errorData.error);
+          // Even if scraping fails, continue with the original URL to let the AI handle it
+          if (isRevision) {
+            apiContent += `\n\n[SYSTEM: Failed to scrape URL ${targetUrl}. The user provided this URL as a ${modeText} but content extraction failed. Provide guidance on how to approach this URL.]`;
+          } else {
+            apiContent += `\n\n[SYSTEM: Failed to scrape URL ${targetUrl}. The user provided this URL as ${modeText} but content extraction failed. Provide general guidance related to this URL.]`;
+          }
         }
       } catch (scrapeErr) {
         console.error("Scraping failed:", scrapeErr);
+        // Even if scraping fails, continue with the original URL to let the AI handle it
+        if (isRevision) {
+          apiContent += `\n\n[SYSTEM: Failed to scrape URL ${targetUrl}. The user provided this URL as a ${modeText} but content extraction failed. Provide guidance on how to approach this URL.]`;
+        } else {
+          apiContent += `\n\n[SYSTEM: Failed to scrape URL ${targetUrl}. The user provided this URL as ${modeText} but content extraction failed. Provide general guidance related to this URL.]`;
+        }
       }
       
       setLoadingText("Synthesizing response...");

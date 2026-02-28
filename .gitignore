@@ -5,5 +5,11 @@ coverage/
 *.log
 .env*
 !.env.example
-\n# Playwright Auth Session\n.auth.json
+
+# Playwright Auth Session
+.auth.json
+
+# Scraping Cache
+.scrape-cache.json
+
 .vercel
